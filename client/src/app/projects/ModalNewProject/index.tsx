@@ -15,26 +15,48 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const resetForm = () => {
+    setProjectName("");
+    setDescription("");
+    setStartDate("");
+    setEndDate("");
+  };
+
   const handleSubmit = async () => {
-    if (!projectName || !startDate || !endDate) return;
+    if (!isFormValid()) return;
 
-    const formattedStartDate = formatISO(new Date(startDate), {
-      representation: "complete",
-    });
-    const formattedEndDate = formatISO(new Date(endDate), {
-      representation: "complete",
-    });
+    try {
+      const projectData: any = {
+        name: projectName,
+        description,
+      };
 
-    await createProject({
-      name: projectName,
-      description,
-      startDate: formattedStartDate,
-      endDate: formattedEndDate,
-    });
+      // Only add dates if they are provided
+      if (startDate) {
+        projectData.startDate = formatISO(new Date(startDate), {
+          representation: "complete",
+        });
+      }
+
+      if (endDate) {
+        projectData.endDate = formatISO(new Date(endDate), {
+          representation: "complete",
+        });
+      }
+
+      await createProject(projectData).unwrap();
+      
+      // Reset form and close modal on success
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("Failed to create project:", error);
+      // You might want to show an error message to the user here
+    }
   };
 
   const isFormValid = () => {
-    return projectName && description && startDate && endDate;
+    return projectName.trim() !== "";
   };
 
   const inputStyles =
@@ -55,23 +77,27 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
           placeholder="Project Name"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
+          required
         />
         <textarea
           className={inputStyles}
-          placeholder="Description"
+          placeholder="Description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          rows={3}
         />
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
           <input
             type="date"
             className={inputStyles}
+            placeholder="Start Date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
           <input
             type="date"
             className={inputStyles}
+            placeholder="End Date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
