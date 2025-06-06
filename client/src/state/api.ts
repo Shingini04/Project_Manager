@@ -77,13 +77,51 @@ export interface Team {
 export const api = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
-    prepareHeaders: async (headers) => {
-      const session = await fetchAuthSession();
-      const { accessToken } = session.tokens ?? {};
-      if (accessToken) {
-        headers.set("Authorization", `Bearer ${accessToken}`);
+    prepareHeaders: async (headers, { getState }) => {
+      try {
+        // Set content type
+        headers.set("Content-Type", "application/json");
+        
+        // Add authentication
+        const session = await fetchAuthSession();
+        const { accessToken } = session.tokens ?? {};
+        
+        if (accessToken) {
+          headers.set("Authorization", `Bearer ${accessToken}`);
+        }
+        
+        console.log("Headers prepared:", {
+          baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+          hasAuth: !!accessToken,
+        });
+        
+        return headers;
+      } catch (error) {
+        console.error("Error preparing headers:", error);
+        return headers;
       }
-      return headers;
+    },
+    // Add response handler for better error handling
+    responseHandler: async (response) => {
+      const contentType = response.headers.get("content-type");
+      
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        console.log("API Response:", { 
+          url: response.url, 
+          status: response.status, 
+          data 
+        });
+        return data;
+      }
+      
+      const text = await response.text();
+      console.log("Non-JSON Response:", { 
+        url: response.url, 
+        status: response.status, 
+        text 
+      });
+      return text;
     },
   }),
   reducerPath: "api",
@@ -103,64 +141,137 @@ export const api = createApi({
 
           return { data: { user, userSub, userDetails } };
         } catch (error: any) {
+          console.error("getAuthUser error:", error);
           return { error: error.message || "Could not fetch user data" };
         }
       },
     }),
+    
     getProjects: build.query<Project[], void>({
-      query: () => "projects",
+      query: () => {
+        console.log("Fetching projects...");
+        return "projects";
+      },
       providesTags: ["Projects"],
+      transformErrorResponse: (response: any) => {
+        console.error("getProjects error:", response);
+        return response;
+      },
     }),
+    
     createProject: build.mutation<Project, Partial<Project>>({
-      query: (project) => ({
-        url: "projects",
-        method: "POST",
-        body: project,
-      }),
+      query: (project) => {
+        console.log("Creating project with data:", project);
+        return {
+          url: "projects",
+          method: "POST",
+          body: project,
+        };
+      },
       invalidatesTags: ["Projects"],
+      transformErrorResponse: (response: any) => {
+        console.error("createProject error:", response);
+        return response;
+      },
     }),
+    
     getTasks: build.query<Task[], { projectId: number }>({
-      query: ({ projectId }) => `tasks?projectId=${projectId}`,
+      query: ({ projectId }) => {
+        console.log("Fetching tasks for project:", projectId);
+        return `tasks?projectId=${projectId}`;
+      },
       providesTags: (result) =>
         result
           ? result.map(({ id }) => ({ type: "Tasks" as const, id }))
           : [{ type: "Tasks" as const }],
+      transformErrorResponse: (response: any) => {
+        console.error("getTasks error:", response);
+        return response;
+      },
     }),
+    
     getTasksByUser: build.query<Task[], number>({
-      query: (userId) => `tasks/user/${userId}`,
+      query: (userId) => {
+        console.log("Fetching tasks for user:", userId);
+        return `tasks/user/${userId}`;
+      },
       providesTags: (result, error, userId) =>
         result
           ? result.map(({ id }) => ({ type: "Tasks", id }))
           : [{ type: "Tasks", id: userId }],
+      transformErrorResponse: (response: any) => {
+        console.error("getTasksByUser error:", response);
+        return response;
+      },
     }),
+    
     createTask: build.mutation<Task, Partial<Task>>({
-      query: (task) => ({
-        url: "tasks",
-        method: "POST",
-        body: task,
-      }),
+      query: (task) => {
+        console.log("Creating task with data:", task);
+        return {
+          url: "tasks",
+          method: "POST",
+          body: task,
+        };
+      },
       invalidatesTags: ["Tasks"],
+      transformErrorResponse: (response: any) => {
+        console.error("createTask error:", response);
+        return response;
+      },
     }),
+    
     updateTaskStatus: build.mutation<Task, { taskId: number; status: string }>({
-      query: ({ taskId, status }) => ({
-        url: `tasks/${taskId}/status`,
-        method: "PATCH",
-        body: { status },
-      }),
+      query: ({ taskId, status }) => {
+        console.log("Updating task status:", { taskId, status });
+        return {
+          url: `tasks/${taskId}/status`,
+          method: "PATCH",
+          body: { status },
+        };
+      },
       invalidatesTags: (result, error, { taskId }) => [
         { type: "Tasks", id: taskId },
       ],
+      transformErrorResponse: (response: any) => {
+        console.error("updateTaskStatus error:", response);
+        return response;
+      },
     }),
+    
     getUsers: build.query<User[], void>({
-      query: () => "users",
+      query: () => {
+        console.log("Fetching users...");
+        return "users";
+      },
       providesTags: ["Users"],
+      transformErrorResponse: (response: any) => {
+        console.error("getUsers error:", response);
+        return response;
+      },
     }),
+    
     getTeams: build.query<Team[], void>({
-      query: () => "teams",
+      query: () => {
+        console.log("Fetching teams...");
+        return "teams";
+      },
       providesTags: ["Teams"],
+      transformErrorResponse: (response: any) => {
+        console.error("getTeams error:", response);
+        return response;
+      },
     }),
+    
     search: build.query<SearchResults, string>({
-      query: (query) => `search?query=${query}`,
+      query: (query) => {
+        console.log("Searching for:", query);
+        return `search?query=${query}`;
+      },
+      transformErrorResponse: (response: any) => {
+        console.error("search error:", response);
+        return response;
+      },
     }),
   }),
 });
