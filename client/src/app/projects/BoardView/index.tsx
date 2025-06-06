@@ -81,11 +81,11 @@ const TaskColumn = ({
       ref={(instance) => {
         drop(instance);
       }}
-      className={`sl:py-4 rounded-lg py-2 xl:px-2 ${isOver ? "bg-blue-100 dark:bg-neutral-950" : ""}`}
+      className={`py-4 rounded-lg py-2 xl:px-2 ${isOver ? "bg-blue-100 dark:bg-neutral-950" : ""}`}
     >
       <div className="mb-3 flex w-full">
         <div
-          className={`w-2 !bg-[${statusColor[status]}] rounded-s-lg`}
+          className={`w-2 rounded-s-lg`}
           style={{ backgroundColor: statusColor[status] }}
         />
         <div className="flex w-full items-center justify-between rounded-e-lg bg-white px-5 py-4 dark:bg-dark-secondary">
@@ -191,7 +191,6 @@ const Task = ({ task }: TaskProps) => {
                   key={tag}
                   className="rounded-full bg-blue-100 px-2 py-1 text-xs"
                 >
-                  {" "}
                   {tag}
                 </div>
               ))}
