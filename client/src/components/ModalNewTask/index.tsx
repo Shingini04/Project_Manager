@@ -22,64 +22,69 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [assignedUserId, setAssignedUserId] = useState("");
   const [projectId, setProjectId] = useState("");
 
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setStatus(Status.ToDo);
-    setPriority(Priority.Backlog);
-    setTags("");
-    setStartDate("");
-    setDueDate("");
-    setAuthorUserId("");
-    setAssignedUserId("");
-    setProjectId("");
-  };
-
   const handleSubmit = async () => {
-    if (!isFormValid()) return;
+    if (!title || !authorUserId || (!id && !projectId)) {
+      console.log("Form validation failed");
+      return;
+    }
 
     try {
-      const taskData: any = {
-        title,
-        description,
-        status,
-        priority,
-        tags,
-        authorUserId: parseInt(authorUserId),
-        projectId: id !== null ? Number(id) : Number(projectId),
-      };
+      let formattedStartDate = null;
+      let formattedDueDate = null;
 
-      // Only add dates if they are provided
       if (startDate) {
-        taskData.startDate = formatISO(new Date(startDate), {
+        formattedStartDate = formatISO(new Date(startDate), {
           representation: "complete",
         });
       }
 
       if (dueDate) {
-        taskData.dueDate = formatISO(new Date(dueDate), {
+        formattedDueDate = formatISO(new Date(dueDate), {
           representation: "complete",
         });
       }
 
-      // Only add assignedUserId if provided
-      if (assignedUserId) {
-        taskData.assignedUserId = parseInt(assignedUserId);
-      }
+      const taskData = {
+        title,
+        description,
+        status,
+        priority,
+        tags,
+        startDate: formattedStartDate,
+        dueDate: formattedDueDate,
+        authorUserId: parseInt(authorUserId),
+        assignedUserId: assignedUserId ? parseInt(assignedUserId) : null,
+        projectId: id ? Number(id) : Number(projectId),
+      };
 
-      await createTask(taskData).unwrap();
+      console.log("Creating task with data:", taskData);
+
+      const result = await createTask(taskData);
       
-      // Reset form and close modal on success
-      resetForm();
-      onClose();
+      if ('data' in result) {
+        console.log("Task created successfully:", result.data);
+        // Reset form
+        setTitle("");
+        setDescription("");
+        setStatus(Status.ToDo);
+        setPriority(Priority.Backlog);
+        setTags("");
+        setStartDate("");
+        setDueDate("");
+        setAuthorUserId("");
+        setAssignedUserId("");
+        setProjectId("");
+        onClose();
+      } else {
+        console.error("Task creation failed:", result.error);
+      }
     } catch (error) {
-      console.error("Failed to create task:", error);
-      // You might want to show an error message to the user here
+      console.error("Error creating task:", error);
     }
   };
 
   const isFormValid = () => {
-    return title && authorUserId && (id !== null || projectId);
+    return title && authorUserId && (id || projectId);
   };
 
   const selectStyles =
@@ -103,7 +108,6 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          required
         />
         <textarea
           className={inputStyles}
@@ -119,6 +123,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
               setStatus(Status[e.target.value as keyof typeof Status])
             }
           >
+            <option value="">Select Status</option>
             <option value={Status.ToDo}>To Do</option>
             <option value={Status.WorkInProgress}>Work In Progress</option>
             <option value={Status.UnderReview}>Under Review</option>
@@ -131,6 +136,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
               setPriority(Priority[e.target.value as keyof typeof Priority])
             }
           >
+            <option value="">Select Priority</option>
             <option value={Priority.Urgent}>Urgent</option>
             <option value={Priority.High}>High</option>
             <option value={Priority.Medium}>Medium</option>
@@ -150,41 +156,37 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           <input
             type="date"
             className={inputStyles}
-            placeholder="Start Date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
           <input
             type="date"
             className={inputStyles}
-            placeholder="Due Date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
         </div>
         <input
-          type="number"
+          type="text"
           className={inputStyles}
           placeholder="Author User ID"
           value={authorUserId}
           onChange={(e) => setAuthorUserId(e.target.value)}
-          required
         />
         <input
-          type="number"
+          type="text"
           className={inputStyles}
-          placeholder="Assigned User ID (optional)"
+          placeholder="Assigned User ID"
           value={assignedUserId}
           onChange={(e) => setAssignedUserId(e.target.value)}
         />
         {id === null && (
           <input
-            type="number"
+            type="text"
             className={inputStyles}
-            placeholder="Project ID"
+            placeholder="ProjectId"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
-            required
           />
         )}
         <button
