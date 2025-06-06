@@ -15,52 +15,43 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const resetForm = () => {
+    setProjectName("");
+    setDescription("");
+    setStartDate("");
+    setEndDate("");
+  };
+
   const handleSubmit = async () => {
-    if (!projectName) {
-      console.log("Project name is required");
-      return;
-    }
+    if (!isFormValid()) return;
 
     try {
-      let formattedStartDate = null;
-      let formattedEndDate = null;
+      const projectData: any = {
+        name: projectName,
+        description,
+      };
 
+      // Only add dates if they are provided
       if (startDate) {
-        formattedStartDate = formatISO(new Date(startDate), {
+        projectData.startDate = formatISO(new Date(startDate), {
           representation: "complete",
         });
       }
 
       if (endDate) {
-        formattedEndDate = formatISO(new Date(endDate), {
+        projectData.endDate = formatISO(new Date(endDate), {
           representation: "complete",
         });
       }
 
-      const projectData = {
-        name: projectName,
-        description,
-        startDate: formattedStartDate,
-        endDate: formattedEndDate,
-      };
-
-      console.log("Creating project with data:", projectData);
-
-      const result = await createProject(projectData);
+      await createProject(projectData).unwrap();
       
-      if ('data' in result) {
-        console.log("Project created successfully:", result.data);
-        // Reset form
-        setProjectName("");
-        setDescription("");
-        setStartDate("");
-        setEndDate("");
-        onClose();
-      } else {
-        console.error("Project creation failed:", result.error);
-      }
+      // Reset form and close modal on success
+      resetForm();
+      onClose();
     } catch (error) {
-      console.error("Error creating project:", error);
+      console.error("Failed to create project:", error);
+      // You might want to show an error message to the user here
     }
   };
 
@@ -86,23 +77,27 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
           placeholder="Project Name"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
+          required
         />
         <textarea
           className={inputStyles}
-          placeholder="Description"
+          placeholder="Description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          rows={3}
         />
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
           <input
             type="date"
             className={inputStyles}
+            placeholder="Start Date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
           <input
             type="date"
             className={inputStyles}
+            placeholder="End Date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
