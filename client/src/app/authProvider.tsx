@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Authenticator } from "@aws-amplify/ui-react";
 import { Amplify } from "aws-amplify";
-import { useCreateUserMutation } from "@/state/api";
 import "@aws-amplify/ui-react/styles.css";
 
 Amplify.configure({
@@ -44,55 +43,9 @@ const formFields = {
 };
 
 const AuthProvider = ({ children }: any) => {
-  const [createUser] = useCreateUserMutation();
-
-  const handleSignUp = async (user: any) => {
-    try {
-      // Create user in our database when they sign up
-      await createUser({
-        username: user.username,
-        cognitoId: user.userId,
-        email: user.signInDetails?.loginId,
-        profilePictureUrl: "p1.jpeg",
-        teamId: 1,
-      });
-    } catch (error) {
-      console.error("Error creating user in database:", error);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Authenticator 
-        formFields={formFields}
-        services={{
-          async handleSignUp(formData) {
-            // Handle the sign up and then create user in our DB
-            const { username, password, attributes } = formData;
-            try {
-              // Let Amplify handle the actual sign up
-              const result = await Amplify.Auth.signUp({
-                username,
-                password,
-                attributes,
-              });
-              
-              // If successful, create user in our database
-              if (result.user) {
-                await handleSignUp({
-                  username,
-                  userId: result.user.userId,
-                  signInDetails: { loginId: attributes?.email },
-                });
-              }
-              
-              return result;
-            } catch (error) {
-              throw error;
-            }
-          },
-        }}
-      >
+      <Authenticator formFields={formFields}>
         {({ user }: any) =>
           user ? (
             <div>{children}</div>

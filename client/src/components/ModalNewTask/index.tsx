@@ -20,6 +20,8 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [tags, setTags] = useState("");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [authorUserId, setAuthorUserId] = useState("");
+  const [assignedUserId, setAssignedUserId] = useState("");
   const [projectId, setProjectId] = useState("");
 
   const resetForm = () => {
@@ -30,6 +32,8 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     setTags("");
     setStartDate("");
     setDueDate("");
+    setAuthorUserId("");
+    setAssignedUserId("");
     setProjectId("");
   };
 
@@ -45,7 +49,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         priority,
         tags: tags || undefined,
         projectId: id !== null ? Number(id) : Number(projectId),
-        authorUserId: currentUser?.userDetails?.userId,
+        authorUserId: currentUser?.userDetails?.userId || parseInt(authorUserId),
       };
 
       // Only add dates if they are provided
@@ -61,6 +65,11 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         });
       }
 
+      // Only add assignedUserId if provided
+      if (assignedUserId) {
+        taskData.assignedUserId = parseInt(assignedUserId);
+      }
+
       await createTask(taskData).unwrap();
       
       // Reset form and close modal on success
@@ -73,148 +82,120 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   };
 
   const isFormValid = () => {
-    return title.trim() !== "" && (id !== null || projectId.trim() !== "");
+    return title.trim() !== "" && (currentUser?.userDetails?.userId || authorUserId) && (id !== null || projectId);
   };
 
   const inputStyles =
-    "w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white";
+    "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
   const selectStyles =
-    "w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white";
+    "mb-4 block w-full rounded border border-gray-300 px-3 py-2 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} name="Create New Task">
       <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Task Title *
-          </label>
+        <input
+          type="text"
+          className={inputStyles}
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
+        <textarea
+          className={inputStyles}
+          placeholder="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
+          <select
+            className={selectStyles}
+            value={status}
+            onChange={(e) =>
+              setStatus(Status[e.target.value as keyof typeof Status])
+            }
+          >
+            <option value={Status.ToDo}>To Do</option>
+            <option value={Status.WorkInProgress}>Work In Progress</option>
+            <option value={Status.UnderReview}>Under Review</option>
+            <option value={Status.Completed}>Completed</option>
+          </select>
+          <select
+            className={selectStyles}
+            value={priority}
+            onChange={(e) =>
+              setPriority(Priority[e.target.value as keyof typeof Priority])
+            }
+          >
+            <option value={Priority.Urgent}>Urgent</option>
+            <option value={Priority.High}>High</option>
+            <option value={Priority.Medium}>Medium</option>
+            <option value={Priority.Low}>Low</option>
+            <option value={Priority.Backlog}>Backlog</option>
+          </select>
+        </div>
+        <input
+          type="text"
+          className={inputStyles}
+          placeholder="Tags (comma separated)"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+        />
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
+          <input
+            type="date"
+            className={inputStyles}
+            placeholder="Start Date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <input
+            type="date"
+            className={inputStyles}
+            placeholder="Due Date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+        </div>
+        
+        {!currentUser?.userDetails?.userId && (
           <input
             type="text"
             className={inputStyles}
-            placeholder="Enter task title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Author User ID"
+            value={authorUserId}
+            onChange={(e) => setAuthorUserId(e.target.value)}
             required
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Description
-          </label>
-          <textarea
-            className={inputStyles}
-            placeholder="Enter task description (optional)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Status
-            </label>
-            <select
-              className={selectStyles}
-              value={status}
-              onChange={(e) => setStatus(e.target.value as Status)}
-            >
-              <option value={Status.ToDo}>To Do</option>
-              <option value={Status.WorkInProgress}>Work In Progress</option>
-              <option value={Status.UnderReview}>Under Review</option>
-              <option value={Status.Completed}>Completed</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Priority
-            </label>
-            <select
-              className={selectStyles}
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as Priority)}
-            >
-              <option value={Priority.Urgent}>Urgent</option>
-              <option value={Priority.High}>High</option>
-              <option value={Priority.Medium}>Medium</option>
-              <option value={Priority.Low}>Low</option>
-              <option value={Priority.Backlog}>Backlog</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tags
-          </label>
+        )}
+        
+        <input
+          type="text"
+          className={inputStyles}
+          placeholder="Assigned User ID (optional)"
+          value={assignedUserId}
+          onChange={(e) => setAssignedUserId(e.target.value)}
+        />
+        {id === null && (
           <input
             type="text"
             className={inputStyles}
-            placeholder="Enter tags (comma separated)"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
+            placeholder="Project ID"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            required
           />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Start Date
-            </label>
-            <input
-              type="date"
-              className={inputStyles}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Due Date
-            </label>
-            <input
-              type="date"
-              className={inputStyles}
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {id === null && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Project ID *
-            </label>
-            <input
-              type="number"
-              className={inputStyles}
-              placeholder="Enter project ID"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              required
-            />
-          </div>
         )}
-
         <button
           type="submit"
-          className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
+          className={`focus-offset-2 mt-4 flex w-full justify-center rounded-md border border-transparent bg-blue-primary px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
             !isFormValid() || isLoading ? "cursor-not-allowed opacity-50" : ""
           }`}
           disabled={!isFormValid() || isLoading}
         >
-          {isLoading ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Creating...
-            </div>
-          ) : (
-            "Create Task"
-          )}
+          {isLoading ? "Creating..." : "Create Task"}
         </button>
       </form>
     </Modal>

@@ -33,6 +33,14 @@ export interface User {
   teamId?: number;
 }
 
+export interface Attachment {
+  id: number;
+  fileURL: string;
+  fileName: string;
+  taskId: number;
+  uploadedById: number;
+}
+
 export interface Task {
   id: number;
   title: string;
@@ -49,6 +57,8 @@ export interface Task {
 
   author?: User;
   assignee?: User;
+  comments?: Comment[];
+  attachments?: Attachment[];
 }
 
 export interface SearchResults {
@@ -148,14 +158,6 @@ export const api = createApi({
       query: () => "users",
       providesTags: ["Users"],
     }),
-    createUser: build.mutation<User, Partial<User>>({
-      query: (user) => ({
-        url: "users",
-        method: "POST",
-        body: user,
-      }),
-      invalidatesTags: ["Users"],
-    }),
     getTeams: build.query<Team[], void>({
       query: () => "teams",
       providesTags: ["Teams"],
@@ -174,7 +176,6 @@ export const {
   useUpdateTaskStatusMutation,
   useSearchQuery,
   useGetUsersQuery,
-  useCreateUserMutation,
   useGetTeamsQuery,
   useGetTasksByUserQuery,
   useGetAuthUserQuery,
