@@ -22,49 +22,65 @@ const CustomToolbar = () => (
 
 const columns: GridColDef[] = [
   { field: "userId", headerName: "ID", width: 100 },
-  { field: "username", headerName: "Username", width: 150 },
+  { field: "username", headerName: "Username", width: 200 },
   {
     field: "profilePictureUrl",
     headerName: "Profile Picture",
-    width: 100,
+    width: 120,
     renderCell: (params) => (
       <div className="flex h-full w-full items-center justify-center">
-        <div className="h-9 w-9">
+        <div className="h-8 w-8">
           <Image
             src={`https://pm-s3-amages.s3.eu-north-1.amazonaws.com/${params.value}`}
             alt={params.row.username}
-            width={100}
-            height={50}
-            className="h-full rounded-full object-cover"
+            width={32}
+            height={32}
+            className="h-full w-full rounded-full object-cover"
           />
         </div>
       </div>
     ),
   },
+  { field: "email", headerName: "Email", width: 250 },
+  { field: "teamId", headerName: "Team ID", width: 100 },
 ];
 
 const Users = () => {
   const { data: users, isLoading, isError } = useGetUsersQuery();
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError || !users) return <div>Error fetching users</div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
+
+  if (isError || !users) return (
+    <div className="flex w-full flex-col p-8">
+      <Header name="Users" />
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <p className="text-red-800">Error fetching users. Please try again later.</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex w-full flex-col p-8">
       <Header name="Users" />
-      <div style={{ height: 650, width: "100%" }}>
-        <DataGrid
-          rows={users || []}
-          columns={columns}
-          getRowId={(row) => row.userId}
-          pagination
-          slots={{
-            toolbar: CustomToolbar,
-          }}
-          className={dataGridClassNames}
-          sx={dataGridSxStyles(isDarkMode)}
-        />
+      <div className="bg-white dark:bg-dark-secondary rounded-lg shadow-sm">
+        <div style={{ height: 650, width: "100%" }}>
+          <DataGrid
+            rows={users || []}
+            columns={columns}
+            getRowId={(row) => row.userId}
+            pagination
+            slots={{
+              toolbar: CustomToolbar,
+            }}
+            className={dataGridClassNames}
+            sx={dataGridSxStyles(isDarkMode)}
+          />
+        </div>
       </div>
     </div>
   );

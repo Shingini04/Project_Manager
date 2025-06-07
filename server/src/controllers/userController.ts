@@ -36,9 +36,20 @@ export const postUser = async (req: Request, res: Response) => {
     const {
       username,
       cognitoId,
-      profilePictureUrl = "i1.jpg",
+      email,
+      profilePictureUrl = "p1.jpeg",
       teamId = 1,
     } = req.body;
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { cognitoId },
+    });
+
+    if (existingUser) {
+      return res.json({ message: "User already exists", user: existingUser });
+    }
+
     const newUser = await prisma.user.create({
       data: {
         username,
@@ -51,6 +62,6 @@ export const postUser = async (req: Request, res: Response) => {
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: `Error retrieving users: ${error.message}` });
+      .json({ message: `Error creating user: ${error.message}` });
   }
 };

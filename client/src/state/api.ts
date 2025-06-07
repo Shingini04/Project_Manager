@@ -27,18 +27,10 @@ export enum Status {
 export interface User {
   userId?: number;
   username: string;
-  email: string;
+  email?: string;
   profilePictureUrl?: string;
   cognitoId?: string;
   teamId?: number;
-}
-
-export interface Attachment {
-  id: number;
-  fileURL: string;
-  fileName: string;
-  taskId: number;
-  uploadedById: number;
 }
 
 export interface Task {
@@ -57,8 +49,6 @@ export interface Task {
 
   author?: User;
   assignee?: User;
-  comments?: Comment[];
-  attachments?: Attachment[];
 }
 
 export interface SearchResults {
@@ -78,10 +68,14 @@ export const api = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
     prepareHeaders: async (headers) => {
-      const session = await fetchAuthSession();
-      const { accessToken } = session.tokens ?? {};
-      if (accessToken) {
-        headers.set("Authorization", `Bearer ${accessToken}`);
+      try {
+        const session = await fetchAuthSession();
+        const { accessToken } = session.tokens ?? {};
+        if (accessToken) {
+          headers.set("Authorization", `Bearer ${accessToken}`);
+        }
+      } catch (error) {
+        console.log("No auth session found");
       }
       return headers;
     },
@@ -96,7 +90,6 @@ export const api = createApi({
           const session = await fetchAuthSession();
           if (!session) throw new Error("No session found");
           const { userSub } = session;
-          const { accessToken } = session.tokens ?? {};
 
           const userDetailsResponse = await fetchWithBQ(`users/${userSub}`);
           const userDetails = userDetailsResponse.data as User;
@@ -155,6 +148,14 @@ export const api = createApi({
       query: () => "users",
       providesTags: ["Users"],
     }),
+    createUser: build.mutation<User, Partial<User>>({
+      query: (user) => ({
+        url: "users",
+        method: "POST",
+        body: user,
+      }),
+      invalidatesTags: ["Users"],
+    }),
     getTeams: build.query<Team[], void>({
       query: () => "teams",
       providesTags: ["Teams"],
@@ -173,6 +174,7 @@ export const {
   useUpdateTaskStatusMutation,
   useSearchQuery,
   useGetUsersQuery,
+  useCreateUserMutation,
   useGetTeamsQuery,
   useGetTasksByUserQuery,
   useGetAuthUserQuery,
