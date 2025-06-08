@@ -20,7 +20,6 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   const [tags, setTags] = useState("");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [authorUserId, setAuthorUserId] = useState("");
   const [assignedUserId, setAssignedUserId] = useState("");
   const [projectId, setProjectId] = useState("");
 
@@ -32,27 +31,36 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     setTags("");
     setStartDate("");
     setDueDate("");
-    setAuthorUserId("");
     setAssignedUserId("");
     setProjectId("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid()) return;
+    
+    if (!title.trim()) {
+      alert("Please enter a task title");
+      return;
+    }
+
+    // Determine project ID
+    const finalProjectId = id ? Number(id) : (projectId ? Number(projectId) : 1);
+    
+    // Determine author user ID
+    const authorUserId = currentUser?.userDetails?.userId || 1;
 
     try {
       const taskData: any = {
-        title,
-        description: description || undefined,
+        title: title.trim(),
+        description: description.trim() || undefined,
         status,
         priority,
-        tags: tags || undefined,
-        projectId: id !== null ? Number(id) : Number(projectId),
-        authorUserId: currentUser?.userDetails?.userId || parseInt(authorUserId),
+        tags: tags.trim() || undefined,
+        projectId: finalProjectId,
+        authorUserId: authorUserId,
       };
 
-      // Only add dates if they are provided
+      // Add dates if provided
       if (startDate) {
         taskData.startDate = formatISO(new Date(startDate), {
           representation: "complete",
@@ -65,10 +73,12 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         });
       }
 
-      // Only add assignedUserId if provided
-      if (assignedUserId) {
+      // Add assigned user if provided
+      if (assignedUserId && assignedUserId.trim()) {
         taskData.assignedUserId = parseInt(assignedUserId);
       }
+
+      console.log("Creating task with data:", taskData);
 
       await createTask(taskData).unwrap();
       
@@ -79,10 +89,6 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
       console.error("Failed to create task:", error);
       alert("Failed to create task. Please try again.");
     }
-  };
-
-  const isFormValid = () => {
-    return title.trim() !== "" && (currentUser?.userDetails?.userId || authorUserId) && (id !== null || projectId);
   };
 
   const inputStyles =
@@ -97,17 +103,20 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         <input
           type="text"
           className={inputStyles}
-          placeholder="Title"
+          placeholder="Task Title *"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
+        
         <textarea
           className={inputStyles}
-          placeholder="Description"
+          placeholder="Description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          rows={3}
         />
+        
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
           <select
             className={selectStyles}
@@ -121,6 +130,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             <option value={Status.UnderReview}>Under Review</option>
             <option value={Status.Completed}>Completed</option>
           </select>
+          
           <select
             className={selectStyles}
             value={priority}
@@ -135,6 +145,7 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             <option value={Priority.Backlog}>Backlog</option>
           </select>
         </div>
+        
         <input
           type="text"
           className={inputStyles}
@@ -160,40 +171,32 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
           />
         </div>
         
-        {!currentUser?.userDetails?.userId && (
-          <input
-            type="text"
-            className={inputStyles}
-            placeholder="Author User ID"
-            value={authorUserId}
-            onChange={(e) => setAuthorUserId(e.target.value)}
-            required
-          />
-        )}
-        
         <input
-          type="text"
+          type="number"
           className={inputStyles}
           placeholder="Assigned User ID (optional)"
           value={assignedUserId}
           onChange={(e) => setAssignedUserId(e.target.value)}
+          min="1"
         />
+        
         {id === null && (
           <input
-            type="text"
+            type="number"
             className={inputStyles}
-            placeholder="Project ID"
+            placeholder="Project ID (default: 1)"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
-            required
+            min="1"
           />
         )}
+        
         <button
           type="submit"
           className={`focus-offset-2 mt-4 flex w-full justify-center rounded-md border border-transparent bg-blue-primary px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
-            !isFormValid() || isLoading ? "cursor-not-allowed opacity-50" : ""
+            !title.trim() || isLoading ? "cursor-not-allowed opacity-50" : ""
           }`}
-          disabled={!isFormValid() || isLoading}
+          disabled={!title.trim() || isLoading}
         >
           {isLoading ? "Creating..." : "Create Task"}
         </button>

@@ -42,24 +42,48 @@ export const createTask = async (
     authorUserId,
     assignedUserId,
   } = req.body;
+
   try {
+    // Validate required fields
+    if (!title || !projectId || !authorUserId) {
+      res.status(400).json({ 
+        message: "Missing required fields: title, projectId, and authorUserId are required" 
+      });
+      return;
+    }
+
+    // Create task data object
+    const taskData: any = {
+      title,
+      projectId: Number(projectId),
+      authorUserId: Number(authorUserId),
+    };
+
+    // Add optional fields only if they exist
+    if (description) taskData.description = description;
+    if (status) taskData.status = status;
+    if (priority) taskData.priority = priority;
+    if (tags) taskData.tags = tags;
+    if (startDate) taskData.startDate = new Date(startDate);
+    if (dueDate) taskData.dueDate = new Date(dueDate);
+    if (points) taskData.points = Number(points);
+    if (assignedUserId) taskData.assignedUserId = Number(assignedUserId);
+
+    console.log("Creating task with data:", taskData);
+
     const newTask = await prisma.task.create({
-      data: {
-        title,
-        description,
-        status,
-        priority,
-        tags,
-        startDate,
-        dueDate,
-        points,
-        projectId,
-        authorUserId,
-        assignedUserId,
+      data: taskData,
+      include: {
+        author: true,
+        assignee: true,
+        comments: true,
+        attachments: true,
       },
     });
+
     res.status(201).json(newTask);
   } catch (error: any) {
+    console.error("Error creating task:", error);
     res
       .status(500)
       .json({ message: `Error creating a task: ${error.message}` });
