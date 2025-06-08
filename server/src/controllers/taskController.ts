@@ -29,21 +29,21 @@ export const createTask = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const {
-    title,
-    description,
-    status,
-    priority,
-    tags,
-    startDate,
-    dueDate,
-    points,
-    projectId,
-    authorUserId,
-    assignedUserId,
-  } = req.body;
-
   try {
+    const {
+      title,
+      description,
+      status,
+      priority,
+      tags,
+      startDate,
+      dueDate,
+      projectId,
+      authorUserId,
+    } = req.body;
+
+    console.log("Received task data:", req.body);
+
     // Validate required fields
     if (!title || !projectId || !authorUserId) {
       res.status(400).json({ 
@@ -52,24 +52,33 @@ export const createTask = async (
       return;
     }
 
-    // Create task data object
+    // Create task data object with only the fields we need
     const taskData: any = {
-      title,
+      title: title.trim(),
+      status: status || "To Do",
+      priority: priority || "Medium",
       projectId: Number(projectId),
       authorUserId: Number(authorUserId),
     };
 
-    // Add optional fields only if they exist
-    if (description) taskData.description = description;
-    if (status) taskData.status = status;
-    if (priority) taskData.priority = priority;
-    if (tags) taskData.tags = tags;
-    if (startDate) taskData.startDate = new Date(startDate);
-    if (dueDate) taskData.dueDate = new Date(dueDate);
-    if (points) taskData.points = Number(points);
-    if (assignedUserId) taskData.assignedUserId = Number(assignedUserId);
+    // Add optional fields only if they exist and have values
+    if (description && description.trim()) {
+      taskData.description = description.trim();
+    }
+    
+    if (tags && tags.trim()) {
+      taskData.tags = tags.trim();
+    }
+    
+    if (startDate) {
+      taskData.startDate = new Date(startDate);
+    }
+    
+    if (dueDate) {
+      taskData.dueDate = new Date(dueDate);
+    }
 
-    console.log("Creating task with data:", taskData);
+    console.log("Creating task with processed data:", taskData);
 
     const newTask = await prisma.task.create({
       data: taskData,
@@ -81,6 +90,7 @@ export const createTask = async (
       },
     });
 
+    console.log("Task created successfully:", newTask);
     res.status(201).json(newTask);
   } catch (error: any) {
     console.error("Error creating task:", error);

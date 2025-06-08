@@ -15,24 +15,19 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<Status>(Status.ToDo);
+  const [status] = useState<Status>(Status.ToDo);
   const [priority, setPriority] = useState<Priority>(Priority.Medium);
   const [tags, setTags] = useState("");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [assignedUserId, setAssignedUserId] = useState("");
-  const [projectId, setProjectId] = useState("");
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setStatus(Status.ToDo);
     setPriority(Priority.Medium);
     setTags("");
     setStartDate("");
     setDueDate("");
-    setAssignedUserId("");
-    setProjectId("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,24 +38,24 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
       return;
     }
 
-    // Determine project ID
-    const finalProjectId = id ? Number(id) : (projectId ? Number(projectId) : 1);
-    
-    // Determine author user ID
-    const authorUserId = currentUser?.userDetails?.userId || 1;
-
     try {
       const taskData: any = {
         title: title.trim(),
-        description: description.trim() || undefined,
-        status,
+        status: "To Do",
         priority,
-        tags: tags.trim() || undefined,
-        projectId: finalProjectId,
-        authorUserId: authorUserId,
+        projectId: id ? Number(id) : 1,
+        authorUserId: currentUser?.userDetails?.userId || 1,
       };
 
-      // Add dates if provided
+      // Add optional fields only if they have values
+      if (description.trim()) {
+        taskData.description = description.trim();
+      }
+      
+      if (tags.trim()) {
+        taskData.tags = tags.trim();
+      }
+
       if (startDate) {
         taskData.startDate = formatISO(new Date(startDate), {
           representation: "complete",
@@ -73,16 +68,10 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
         });
       }
 
-      // Add assigned user if provided
-      if (assignedUserId && assignedUserId.trim()) {
-        taskData.assignedUserId = parseInt(assignedUserId);
-      }
-
       console.log("Creating task with data:", taskData);
 
       await createTask(taskData).unwrap();
       
-      // Reset form and close modal on success
       resetForm();
       onClose();
     } catch (error) {
@@ -95,48 +84,59 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
     "w-full rounded border border-gray-300 p-2 shadow-sm dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
   const selectStyles =
-    "mb-4 block w-full rounded border border-gray-300 px-3 py-2 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
+    "w-full rounded border border-gray-300 px-3 py-2 dark:border-dark-tertiary dark:bg-dark-tertiary dark:text-white dark:focus:outline-none";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} name="Create New Task">
-      <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          className={inputStyles}
-          placeholder="Task Title *"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-        
-        <textarea
-          className={inputStyles}
-          placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-        />
-        
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
-          <select
-            className={selectStyles}
-            value={status}
-            onChange={(e) =>
-              setStatus(Status[e.target.value as keyof typeof Status])
-            }
-          >
-            <option value={Status.ToDo}>To Do</option>
-            <option value={Status.WorkInProgress}>Work In Progress</option>
-            <option value={Status.UnderReview}>Under Review</option>
-            <option value={Status.Completed}>Completed</option>
-          </select>
-          
+      <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+        {/* Task Title - Required */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Task Title *
+          </label>
+          <input
+            type="text"
+            className={inputStyles}
+            placeholder="Enter task title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </div>
+
+        {/* Description - Optional */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Description (optional)
+          </label>
+          <textarea
+            className={inputStyles}
+            placeholder="Enter task description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+          />
+        </div>
+
+        {/* Status - Fixed to "To Do" */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Status
+          </label>
+          <div className={`${inputStyles} bg-gray-100 dark:bg-gray-700 cursor-not-allowed`}>
+            To Do
+          </div>
+        </div>
+
+        {/* Priority */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Priority
+          </label>
           <select
             className={selectStyles}
             value={priority}
-            onChange={(e) =>
-              setPriority(Priority[e.target.value as keyof typeof Priority])
-            }
+            onChange={(e) => setPriority(Priority[e.target.value as keyof typeof Priority])}
           >
             <option value={Priority.Urgent}>Urgent</option>
             <option value={Priority.High}>High</option>
@@ -145,55 +145,51 @@ const ModalNewTask = ({ isOpen, onClose, id = null }: Props) => {
             <option value={Priority.Backlog}>Backlog</option>
           </select>
         </div>
-        
-        <input
-          type="text"
-          className={inputStyles}
-          placeholder="Tags (comma separated)"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-        />
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-2">
+        {/* Tags */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tags (comma separated)
+          </label>
           <input
-            type="date"
+            type="text"
             className={inputStyles}
-            placeholder="Start Date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <input
-            type="date"
-            className={inputStyles}
-            placeholder="Due Date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
+            placeholder="e.g. frontend, urgent, bug"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
           />
         </div>
+
+        {/* Dates */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              className={inputStyles}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Due Date
+            </label>
+            <input
+              type="date"
+              className={inputStyles}
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+        </div>
         
-        <input
-          type="number"
-          className={inputStyles}
-          placeholder="Assigned User ID (optional)"
-          value={assignedUserId}
-          onChange={(e) => setAssignedUserId(e.target.value)}
-          min="1"
-        />
-        
-        {id === null && (
-          <input
-            type="number"
-            className={inputStyles}
-            placeholder="Project ID (default: 1)"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            min="1"
-          />
-        )}
-        
+        {/* Submit Button */}
         <button
           type="submit"
-          className={`focus-offset-2 mt-4 flex w-full justify-center rounded-md border border-transparent bg-blue-primary px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+          className={`mt-6 flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${
             !title.trim() || isLoading ? "cursor-not-allowed opacity-50" : ""
           }`}
           disabled={!title.trim() || isLoading}
